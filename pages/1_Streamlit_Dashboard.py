@@ -14,19 +14,24 @@ st.set_page_config(
 # ── Connection ────────────────────────────────────────────────────────────────
 
 cfg = Config()
+_hostname = cfg.host.removeprefix("https://").removeprefix("http://")
+_http_path = f"/sql/1.0/warehouses/{cfg.warehouse_id}"
 
-def query(sql: str) -> pd.DataFrame:
-    user_token = st.context.headers.get("X-Forwarded-Access-Token")
-    with dbsql.connect(
-        server_hostname=cfg.host,
-        http_path=f"/sql/1.0/warehouses/{cfg.warehouse_id}",
-        access_token=user_token,
-    ) as conn:
+@st.cache_data(ttl=300)
+def query(sql: str, token: str | None = None) -> pd.DataFrame:
+    if token:
+        conn = dbsql.connect(server_hostname=_hostname, http_path=_http_path, access_token=token)
+    else:
+        conn = dbsql.connect(server_hostname=_hostname, http_path=_http_path,
+                             credentials_provider=lambda: cfg.authenticate)
+    with conn:
         with conn.cursor() as cursor:
             cursor.execute(sql)
             return cursor.fetchall_arrow().to_pandas()
 
 # ── Data ──────────────────────────────────────────────────────────────────────
+
+_token = st.context.headers.get("X-Forwarded-Access-Token")
 
 def load_kpis():
     return query("""
@@ -36,7 +41,7 @@ def load_kpis():
             (SELECT COUNT(*)           FROM ahtsa.awm.accounts)  AS num_accounts,
             (SELECT SUM(unrealized_gl) FROM ahtsa.awm.holdings)  AS total_gl,
             (SELECT SUM(market_value)  FROM ahtsa.awm.holdings)  AS total_mv
-    """)
+    """, _token)
 
 def load_performance():
     return query("""
@@ -45,7 +50,7 @@ def load_performance():
         WHERE symbol IN ('SPY', 'AGG')
           AND date >= DATEADD(DAY, -90, CURRENT_DATE)
         ORDER BY date
-    """)
+    """, _token)
 
 def load_allocation():
     return query("""
@@ -53,7 +58,7 @@ def load_allocation():
         FROM ahtsa.awm.holdings
         GROUP BY asset_class
         ORDER BY market_value DESC
-    """)
+    """, _token)
 
 def load_top_holdings():
     return query("""
@@ -73,7 +78,7 @@ def load_top_holdings():
         GROUP BY ticker, company_name, sector
         ORDER BY SUM(market_value) DESC
         LIMIT 10
-    """)
+    """, _token)
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
 
