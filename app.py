@@ -11,7 +11,7 @@ st.caption("Powered by Databricks Lakehouse")
 
 st.divider()
 
-col1, col2 = st.columns(2, gap="large")
+col1, col2, col3 = st.columns(3, gap="large")
 
 with col1:
     st.page_link(
@@ -35,4 +35,15 @@ with col2:
         "Embedded Databricks AI/BI Lakeview dashboard. "
         "Drag-and-drop analytics with natural language querying "
         "and auto-generated insights."
+    )
+
+with col3:
+    st.page_link(
+        "pages/3_Genie.py",
+        label="**🧞 Ask Your Portfolio**",
+        use_container_width=True,
+    )
+    st.markdown(
+        "Natural language chat over `ahtsa.awm` powered by Databricks Genie. "
+        "Ask questions, get answers with live data tables and suggested follow-ups."
     )
