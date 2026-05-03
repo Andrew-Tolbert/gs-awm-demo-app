@@ -8,6 +8,18 @@ resources:
       description: "GS AWM Demo App"
       source_code_path: .
       budget_policy_id: "5b62fa02-8671-46d3-96ac-64c1725dc9d9"
+      resources:
+        - name: "sql-warehouse"
+          description: "SQL Warehouse for AWM demo queries"
+          sql_warehouse:
+            id: "4b9b953939869799"
+            permission: "CAN_USE"
+        - name: "genie-space"
+          description: "AWM Genie Space"
+          genie_space:
+            name: "genie-space"
+            space_id: "01f147207fdd153cb94327ebddc171fe"
+            permission: "CAN_RUN"
 
 targets:
   dev:

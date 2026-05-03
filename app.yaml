@@ -11,4 +11,4 @@ env:
   - name: SQL_WAREHOUSE_ID
     valueFrom: sql-warehouse
   - name: AWM_GENIE_SPACE
-    value: genie-space
+    valueFrom: genie-space

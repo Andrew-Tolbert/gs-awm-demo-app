@@ -2,7 +2,8 @@ import os
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-from databricks.sdk import WorkspaceClient
+from databricks import sql as dbsql
+from databricks.sdk.core import Config
 from datetime import datetime, timezone
 
 st.set_page_config(
@@ -13,21 +14,17 @@ st.set_page_config(
 
 # ── Connection ────────────────────────────────────────────────────────────────
 
-@st.cache_resource
-def get_client():
-    return WorkspaceClient()
-
 @st.cache_data(ttl=300)
 def query(sql: str) -> pd.DataFrame:
-    w = get_client()
-    result = w.statement_execution.execute_statement(
-        warehouse_id=os.environ["SQL_WAREHOUSE_ID"],
-        statement=sql,
-        wait_timeout="30s",
-    )
-    cols = [c.name for c in result.manifest.schema.columns]
-    rows = result.result.data_array or []
-    return pd.DataFrame([[v for v in row] for row in rows], columns=cols)
+    cfg = Config()
+    with dbsql.connect(
+        server_hostname=cfg.host,
+        http_path=f"/sql/1.0/warehouses/{os.environ['SQL_WAREHOUSE_ID']}",
+        credentials_provider=lambda: cfg.authenticate,
+    ) as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(sql)
+            return cursor.fetchall_arrow().to_pandas()
 
 # ── Data ──────────────────────────────────────────────────────────────────────
 
