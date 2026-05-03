@@ -6,7 +6,7 @@ resources:
     gs_awm_demo:
       name: "gs-awm-demo"
       description: "GS AWM Demo App"
-      source_code_path: ./dev
+      source_code_path: .
       budget_policy_id: "5b62fa02-8671-46d3-96ac-64c1725dc9d9"
 
 targets:
