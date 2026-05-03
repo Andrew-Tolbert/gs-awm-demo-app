@@ -4,6 +4,8 @@ __pycache__/
 venv/
 .env
 .databricks/
+.bundle/
+.claude/
 .DS_Store
 *.egg-info/
 dist/
