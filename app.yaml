@@ -8,7 +8,7 @@ command:
   - "0.0.0.0"
 
 env:
-  - name: DATABRICKS_WAREHOUSE_ID
+  - name: SQL_WAREHOUSE_ID
     valueFrom: sql-warehouse
   - name: AWM_GENIE_SPACE
     value: genie-space
