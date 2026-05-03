@@ -5,7 +5,9 @@
       "WebSearch",
       "WebFetch(domain:www.databricks.com)",
       "WebFetch(domain:github.com)",
-      "WebFetch(domain:raw.githubusercontent.com)"
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:apps-cookbook.dev)",
+      "WebFetch(domain:community.databricks.com)"
     ]
   }
 }
