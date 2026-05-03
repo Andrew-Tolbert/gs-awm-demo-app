@@ -17,12 +17,15 @@ cfg = Config()
 user_token = st.context.headers.get("X-Forwarded-Access-Token")
 
 @st.cache_data(ttl=300)
-def query(sql: str, token: str) -> pd.DataFrame:
-    with dbsql.connect(
-        server_hostname=cfg.host,
-        http_path=f"/sql/1.0/warehouses/{cfg.warehouse_id}",
-        access_token=token,
-    ) as conn:
+def query(sql: str, token: str | None) -> pd.DataFrame:
+    hostname = cfg.host.removeprefix("https://").removeprefix("http://")
+    http_path = f"/sql/1.0/warehouses/{cfg.warehouse_id}"
+    if token:
+        conn = dbsql.connect(server_hostname=hostname, http_path=http_path, access_token=token)
+    else:
+        conn = dbsql.connect(server_hostname=hostname, http_path=http_path,
+                             credentials_provider=lambda: cfg.authenticate)
+    with conn:
         with conn.cursor() as cursor:
             cursor.execute(sql)
             return cursor.fetchall_arrow().to_pandas()
