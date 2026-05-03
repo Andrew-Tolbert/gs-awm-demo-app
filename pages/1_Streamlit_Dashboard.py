@@ -1,4 +1,3 @@
-import os
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -14,32 +13,22 @@ st.set_page_config(
 
 # ── Connection ────────────────────────────────────────────────────────────────
 
-def _get_token() -> str:
-    forwarded = st.context.headers.get("X-Forwarded-Access-Token")
-    if forwarded:
-        return forwarded
-    cfg = Config()
-    return cfg.authenticate().get("Authorization", "").replace("Bearer ", "")
+cfg = Config()
+user_token = st.context.headers.get("X-Forwarded-Access-Token")
 
 @st.cache_data(ttl=300)
-def _query(sql: str, token: str) -> pd.DataFrame:
-    cfg = Config()
-    hostname = cfg.host.replace("https://", "").replace("http://", "")
+def query(sql: str, token: str) -> pd.DataFrame:
     with dbsql.connect(
-        server_hostname=hostname,
-        http_path=f"/sql/1.0/warehouses/{os.environ['SQL_WAREHOUSE_ID']}",
+        server_hostname=cfg.host,
+        http_path=f"/sql/1.0/warehouses/{cfg.warehouse_id}",
         access_token=token,
     ) as conn:
         with conn.cursor() as cursor:
             cursor.execute(sql)
             return cursor.fetchall_arrow().to_pandas()
 
-def query(sql: str) -> pd.DataFrame:
-    return _query(sql, _get_token())
-
 # ── Data ──────────────────────────────────────────────────────────────────────
 
-@st.cache_data(ttl=300)
 def load_kpis():
     return query("""
         SELECT
@@ -48,9 +37,8 @@ def load_kpis():
             (SELECT COUNT(*)           FROM ahtsa.awm.accounts)  AS num_accounts,
             (SELECT SUM(unrealized_gl) FROM ahtsa.awm.holdings)  AS total_gl,
             (SELECT SUM(market_value)  FROM ahtsa.awm.holdings)  AS total_mv
-    """)
+    """, user_token)
 
-@st.cache_data(ttl=300)
 def load_performance():
     return query("""
         SELECT symbol, date, adjClose
@@ -58,18 +46,16 @@ def load_performance():
         WHERE symbol IN ('SPY', 'AGG')
           AND date >= DATEADD(DAY, -90, CURRENT_DATE)
         ORDER BY date
-    """)
+    """, user_token)
 
-@st.cache_data(ttl=300)
 def load_allocation():
     return query("""
         SELECT asset_class, SUM(market_value) AS market_value
         FROM ahtsa.awm.holdings
         GROUP BY asset_class
         ORDER BY market_value DESC
-    """)
+    """, user_token)
 
-@st.cache_data(ttl=300)
 def load_top_holdings():
     return query("""
         SELECT
@@ -88,7 +74,7 @@ def load_top_holdings():
         GROUP BY ticker, company_name, sector
         ORDER BY SUM(market_value) DESC
         LIMIT 10
-    """)
+    """, user_token)
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
 
