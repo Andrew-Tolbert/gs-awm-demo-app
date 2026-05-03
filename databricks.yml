@@ -1,0 +1,18 @@
+bundle:
+  name: gs-awm-demo
+
+resources:
+  apps:
+    gs_awm_demo:
+      name: "gs-awm-demo"
+      description: "GS AWM Demo App"
+      source_code_path: ./app
+      budget_policy_id: "5b62fa02-8671-46d3-96ac-64c1725dc9d9"
+
+targets:
+  dev:
+    mode: development
+    default: true
+    workspace:
+      host: https://e2-demo-field-eng.cloud.databricks.com
+      root_path: /Users/andrew.tolbert@databricks.com/.bundle/${bundle.name}/${bundle.target}
