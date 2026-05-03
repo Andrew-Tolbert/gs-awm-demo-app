@@ -8,6 +8,8 @@ resources:
       description: "GS AWM Demo App"
       source_code_path: .
       budget_policy_id: "5b62fa02-8671-46d3-96ac-64c1725dc9d9"
+      user_api_scopes:
+        - sql
       resources:
         - name: "sql-warehouse"
           description: "SQL Warehouse for AWM demo queries"
