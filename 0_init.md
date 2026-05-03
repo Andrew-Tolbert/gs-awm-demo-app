@@ -7,5 +7,7 @@ Edit `app.py`, commit, push, then deploy:
 
 ```bash
 git add -A && git commit -m "..." && git push
-databricks bundle deploy -p e2-demo && databricks bundle run gs_awm_demo -p e2-demo
+databricks apps deploy -p e2-demo
 ```
+
+`databricks bundle deploy` is only needed if you change `databricks.yml` (app config, resources, permissions).

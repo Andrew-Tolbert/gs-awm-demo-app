@@ -1,114 +1,179 @@
+import os
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
-from datetime import datetime, timedelta
-import random
+from databricks.sdk import WorkspaceClient
 
 st.set_page_config(
-    page_title="GS AWM Demo",
+    page_title="Streamlit Dashboard",
     page_icon="📊",
     layout="wide",
 )
 
-st.title("GS Asset & Wealth Management — Databricks Demo")
-st.caption("Powered by Databricks Lakehouse Platform")
+# ── Connection ──────────────────────────────────────────────────────────────
 
-# Sidebar
-with st.sidebar:
-    st.header("Portfolio Filters")
-    asset_class = st.multiselect(
-        "Asset Class",
-        ["Equities", "Fixed Income", "Alternatives", "Cash"],
-        default=["Equities", "Fixed Income"],
+@st.cache_resource
+def get_client():
+    return WorkspaceClient()
+
+@st.cache_data(ttl=300)
+def query(sql: str) -> pd.DataFrame:
+    w = get_client()
+    warehouse_id = os.environ["DATABRICKS_WAREHOUSE_ID"]
+    result = w.statement_execution.execute_statement(
+        warehouse_id=warehouse_id,
+        statement=sql,
+        wait_timeout="30s",
     )
-    region = st.selectbox("Region", ["Global", "Americas", "EMEA", "APAC"])
-    time_horizon = st.slider("Lookback (days)", 30, 365, 90)
+    cols = [c.name for c in result.manifest.schema.columns]
+    rows = result.result.data_array or []
+    return pd.DataFrame([[v for v in row] for row in rows], columns=cols)
 
-# Generate sample data
-random.seed(42)
-dates = [datetime.today() - timedelta(days=i) for i in range(time_horizon, 0, -1)]
+# ── Data ─────────────────────────────────────────────────────────────────────
 
-portfolio_value = 10_000_000
-values = [portfolio_value]
-for _ in range(len(dates) - 1):
-    values.append(values[-1] * (1 + random.gauss(0.0003, 0.008)))
+@st.cache_data(ttl=300)
+def load_kpis():
+    return query("""
+        SELECT
+            (SELECT SUM(total_aum)  FROM ahtsa.awm.clients)  AS total_aum,
+            (SELECT COUNT(*)        FROM ahtsa.awm.clients)  AS num_clients,
+            (SELECT COUNT(*)        FROM ahtsa.awm.accounts) AS num_accounts,
+            (SELECT SUM(unrealized_gl) FROM ahtsa.awm.holdings) AS total_gl,
+            (SELECT SUM(market_value)  FROM ahtsa.awm.holdings) AS total_mv
+    """)
 
-df_perf = pd.DataFrame({"Date": dates, "Portfolio Value ($)": values})
+@st.cache_data(ttl=300)
+def load_performance():
+    return query("""
+        SELECT symbol, date, adjClose
+        FROM ahtsa.awm.bronze_historical_prices
+        WHERE symbol IN ('SPY', 'AGG')
+          AND date >= DATEADD(DAY, -90, CURRENT_DATE)
+        ORDER BY date
+    """)
 
-# Benchmark
-benchmark_values = [portfolio_value]
-for _ in range(len(dates) - 1):
-    benchmark_values.append(benchmark_values[-1] * (1 + random.gauss(0.0002, 0.007)))
-df_perf["Benchmark"] = benchmark_values
+@st.cache_data(ttl=300)
+def load_allocation():
+    return query("""
+        SELECT asset_class, SUM(market_value) AS market_value
+        FROM ahtsa.awm.holdings
+        GROUP BY asset_class
+        ORDER BY market_value DESC
+    """)
 
-# KPI row
+@st.cache_data(ttl=300)
+def load_top_holdings():
+    return query("""
+        SELECT
+            ticker,
+            company_name,
+            sector,
+            ROUND(SUM(market_value) / 1e6, 1)        AS market_value_m,
+            ROUND(SUM(unrealized_gl) / 1e6, 1)       AS unrealized_gl_m,
+            ROUND(AVG(unrealized_gl_pct), 1)          AS gl_pct,
+            ROUND(AVG(pct_of_total_aum) * 100, 2)    AS weight_pct,
+            MAX(analyst_consensus)                    AS analyst_view
+        FROM ahtsa.awm.gold_portfolio_fundamentals
+        WHERE holdings_date = (SELECT MAX(holdings_date) FROM ahtsa.awm.gold_portfolio_fundamentals)
+          AND is_etf = false
+          AND sector IS NOT NULL
+        GROUP BY ticker, company_name, sector
+        ORDER BY SUM(market_value) DESC
+        LIMIT 10
+    """)
+
+# ── Sidebar ───────────────────────────────────────────────────────────────────
+
+with st.sidebar:
+    st.header("Filters")
+    df_alloc_raw = load_allocation()
+    asset_classes = df_alloc_raw["asset_class"].tolist()
+    selected_classes = st.multiselect("Asset Class", asset_classes, default=asset_classes)
+    lookback = st.slider("Performance Lookback (days)", 30, 90, 90)
+
+# ── Header ────────────────────────────────────────────────────────────────────
+
+st.title("GS Asset & Wealth Management")
+st.caption("Powered by Databricks Lakehouse · Data from `ahtsa.awm`")
+
+# ── KPIs ──────────────────────────────────────────────────────────────────────
+
+kpis = load_kpis().iloc[0]
+total_aum = float(kpis["total_aum"])
+total_gl  = float(kpis["total_gl"])
+total_mv  = float(kpis["total_mv"])
+gl_pct    = total_gl / (total_mv - total_gl) * 100
+
 col1, col2, col3, col4 = st.columns(4)
-total_return = (values[-1] - portfolio_value) / portfolio_value * 100
-benchmark_return = (benchmark_values[-1] - portfolio_value) / portfolio_value * 100
-alpha = total_return - benchmark_return
-
-col1.metric("Portfolio Value", f"${values[-1]:,.0f}", f"{total_return:+.2f}%")
-col2.metric("Total Return", f"{total_return:.2f}%", f"α {alpha:+.2f}%")
-col3.metric("Sharpe Ratio", f"{random.uniform(0.8, 1.6):.2f}", "+0.12")
-col4.metric("Active Positions", "47", "+3")
+col1.metric("Total AUM",         f"${total_aum / 1e9:.1f}B")
+col2.metric("Clients",           f"{int(kpis['num_clients']):,}")
+col3.metric("Accounts",          f"{int(kpis['num_accounts']):,}")
+col4.metric("Unrealized G/L",    f"${total_gl / 1e9:.1f}B",  f"{gl_pct:+.1f}%")
 
 st.divider()
 
-# Performance chart
-fig = px.line(
-    df_perf,
-    x="Date",
-    y=["Portfolio Value ($)", "Benchmark"],
-    title="Portfolio vs Benchmark Performance",
+# ── Performance Chart ─────────────────────────────────────────────────────────
+
+df_perf = load_performance()
+df_perf["date"]     = pd.to_datetime(df_perf["date"])
+df_perf["adjClose"] = df_perf["adjClose"].astype(float)
+df_perf = df_perf[df_perf["date"] >= df_perf["date"].max() - pd.Timedelta(days=lookback)]
+
+# Normalize to 100
+df_perf["indexed"] = df_perf.groupby("symbol")["adjClose"].transform(lambda x: x / x.iloc[0] * 100)
+df_perf["label"]   = df_perf["symbol"].map({"SPY": "Equities (SPY)", "AGG": "Fixed Income (AGG)"})
+
+fig_perf = px.line(
+    df_perf, x="date", y="indexed", color="label",
+    title="Market Performance (Indexed to 100)",
+    labels={"indexed": "Index Value", "date": "", "label": ""},
     template="plotly_white",
 )
-fig.update_layout(legend_title_text="", hovermode="x unified")
-st.plotly_chart(fig, use_container_width=True)
+fig_perf.update_layout(hovermode="x unified", legend=dict(orientation="h", y=1.12))
+st.plotly_chart(fig_perf, use_container_width=True)
 
-# Allocation + Risk side by side
+# ── Allocation + Top Holdings ─────────────────────────────────────────────────
+
 col_left, col_right = st.columns(2)
 
 with col_left:
-    allocation_data = {
-        "Equities": 52,
-        "Fixed Income": 28,
-        "Alternatives": 15,
-        "Cash": 5,
-    }
-    filtered = {k: v for k, v in allocation_data.items() if k in asset_class} if asset_class else allocation_data
+    df_alloc = df_alloc_raw[df_alloc_raw["asset_class"].isin(selected_classes)].copy()
+    df_alloc["market_value"] = df_alloc["market_value"].astype(float)
     fig_pie = px.pie(
-        values=list(filtered.values()),
-        names=list(filtered.keys()),
-        title="Asset Allocation",
+        df_alloc, values="market_value", names="asset_class",
+        title="Asset Allocation by Market Value",
         hole=0.4,
     )
+    fig_pie.update_traces(textinfo="percent+label")
     st.plotly_chart(fig_pie, use_container_width=True)
 
 with col_right:
-    risk_metrics = pd.DataFrame({
-        "Metric": ["VaR (95%)", "CVaR (95%)", "Max Drawdown", "Beta", "Tracking Error"],
-        "Portfolio": ["1.24%", "1.87%", "-8.3%", "0.92", "2.1%"],
-        "Limit": ["2.00%", "3.00%", "-15.0%", "1.10", "4.0%"],
-        "Status": ["✅ OK", "✅ OK", "✅ OK", "✅ OK", "✅ OK"],
-    })
-    st.subheader("Risk Dashboard")
-    st.dataframe(risk_metrics, hide_index=True, use_container_width=True)
+    df_holdings = load_top_holdings()
+    for col in ("market_value_m", "unrealized_gl_m", "gl_pct", "weight_pct"):
+        df_holdings[col] = pd.to_numeric(df_holdings[col], errors="coerce")
 
-# Top holdings table
-st.subheader("Top Holdings")
-holdings = pd.DataFrame({
-    "Security": ["AAPL US", "MSFT US", "AMZN US", "GOOGL US", "JPM US", "BRK/B US", "UNH US", "V US"],
-    "Asset Class": ["Equities"] * 8,
-    "Weight (%)": [5.2, 4.8, 3.9, 3.7, 2.8, 2.5, 2.3, 2.1],
-    "1D Return (%)": [round(random.gauss(0.05, 0.8), 2) for _ in range(8)],
-    "YTD Return (%)": [round(random.gauss(8, 12), 2) for _ in range(8)],
-    "Market Value ($M)": [round(v * values[-1] / 100 / 1e6, 2) for v in [5.2, 4.8, 3.9, 3.7, 2.8, 2.5, 2.3, 2.1]],
-})
-st.dataframe(
-    holdings.style.format({"Weight (%)": "{:.1f}", "Market Value ($M)": "${:.2f}"}),
-    hide_index=True,
-    use_container_width=True,
-)
+    st.subheader("Top Holdings")
+    st.dataframe(
+        df_holdings.rename(columns={
+            "ticker":          "Ticker",
+            "company_name":    "Company",
+            "sector":          "Sector",
+            "market_value_m":  "MV ($M)",
+            "unrealized_gl_m": "Unreal. G/L ($M)",
+            "gl_pct":          "G/L %",
+            "weight_pct":      "Weight %",
+            "analyst_view":    "Analyst",
+        }).style.format({
+            "MV ($M)":          "${:,.1f}",
+            "Unreal. G/L ($M)": "${:,.1f}",
+            "G/L %":            "{:+.1f}%",
+            "Weight %":         "{:.2f}%",
+        }),
+        hide_index=True,
+        use_container_width=True,
+    )
 
-st.caption(f"Data refreshed: {datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')} | Region: {region}")
+# ── Footer ────────────────────────────────────────────────────────────────────
+
+from datetime import datetime
+st.caption(f"Refreshed: {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}")
