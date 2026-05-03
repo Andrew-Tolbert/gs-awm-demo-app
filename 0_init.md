@@ -3,7 +3,7 @@
 Repo: https://github.com/Andrew-Tolbert/gs-awm-demo-app  
 App: https://gs-awm-demo-1444828305810485.aws.databricksapps.com
 
-Edit `app/app.py`, commit, push, then deploy:
+Edit `app.py`, commit, push, then deploy:
 
 ```bash
 git add -A && git commit -m "..." && git push
