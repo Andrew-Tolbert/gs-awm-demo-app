@@ -11,7 +11,7 @@ cfg = Config()
 def sql_query_with_user_token(query: str, user_token: str) -> pd.DataFrame:
     with sql.connect(
         server_hostname=cfg.host,
-        http_path=f"/sql/1.0/warehouses/{cfg.warehouse_id}",
+        http_path=f"/sql/1.0/warehouses/{os.getenv('DATABRICKS_WAREHOUSE_ID')}",
         access_token=user_token,
     ) as connection:
         with connection.cursor() as cursor:
@@ -21,6 +21,11 @@ def sql_query_with_user_token(query: str, user_token: str) -> pd.DataFrame:
 st.set_page_config(layout="wide")
 
 user_token = st.context.headers.get("X-Forwarded-Access-Token")
+
+with st.sidebar.expander("Debug", expanded=True):
+    st.write("host:", cfg.host)
+    st.write("warehouse_id:", os.getenv('DATABRICKS_WAREHOUSE_ID'))
+    st.write("token present:", bool(user_token))
 
 @st.cache_data(ttl=30)
 def getData(token):
