@@ -1,6 +1,6 @@
 # Iteration Process
 
-Repo: https://github.com/andrew-tolbert_data/gs-awm-demo-app  
+Repo: https://github.com/Andrew-Tolbert/gs-awm-demo-app  
 App: https://gs-awm-demo-1444828305810485.aws.databricksapps.com
 
 Edit `app/app.py`, commit, push, then deploy:
