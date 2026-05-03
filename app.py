@@ -28,11 +28,21 @@ with st.sidebar.expander("Debug", expanded=True):
     st.write("warehouse_id:", os.getenv('DATABRICKS_WAREHOUSE_ID'))
     st.write("token present:", bool(user_token))
 
-@st.cache_data(ttl=30)
-def getData(token):
-    return sql_query_with_user_token("select * from samples.nyctaxi.trips limit 5000", token)
+def sql_query_with_service_principal(query: str) -> pd.DataFrame:
+    with sql.connect(
+        server_hostname=hostname,
+        http_path=f"/sql/1.0/warehouses/{os.getenv('DATABRICKS_WAREHOUSE_ID')}",
+        credentials_provider=lambda: cfg.authenticate,
+    ) as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(query)
+            return cursor.fetchall_arrow().to_pandas()
 
-data = getData(user_token)
+@st.cache_data(ttl=30)
+def getData():
+    return sql_query_with_service_principal("select * from samples.nyctaxi.trips limit 5000")
+
+data = getData()
 
 st.header("Taxi fare distribution !!! :)")
 col1, col2 = st.columns([3, 1])
