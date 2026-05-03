@@ -8,6 +8,7 @@ venv/
 .claude/
 .DS_Store
 *.egg-info/
+.vscode/
 dist/
 build/
 0_planning/

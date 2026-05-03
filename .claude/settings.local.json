@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "WebFetch(domain:docs.databricks.com)"
+      "WebFetch(domain:docs.databricks.com)",
+      "WebSearch",
+      "WebFetch(domain:www.databricks.com)",
+      "WebFetch(domain:github.com)"
     ]
   }
 }

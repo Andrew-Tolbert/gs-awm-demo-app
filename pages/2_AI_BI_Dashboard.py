@@ -12,7 +12,7 @@ st.caption("Embedded Databricks AI/BI Lakeview Dashboard")
 
 DASHBOARD_URL = (
     "https://e2-demo-field-eng.cloud.databricks.com"
-    "/dashboardsv3/01f142dfebb71521b206239da8aa1d3d/published"
+    "/embed/dashboardsv3/01f142dfebb71521b206239da8aa1d3d"
     "?o=1444828305810485"
 )
 
