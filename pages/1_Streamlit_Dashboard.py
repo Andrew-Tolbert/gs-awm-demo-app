@@ -14,17 +14,28 @@ st.set_page_config(
 
 # ── Connection ────────────────────────────────────────────────────────────────
 
-@st.cache_data(ttl=300)
-def query(sql: str) -> pd.DataFrame:
+def _get_token() -> str:
+    forwarded = st.context.headers.get("X-Forwarded-Access-Token")
+    if forwarded:
+        return forwarded
     cfg = Config()
+    return cfg.authenticate().get("Authorization", "").replace("Bearer ", "")
+
+@st.cache_data(ttl=300)
+def _query(sql: str, token: str) -> pd.DataFrame:
+    cfg = Config()
+    hostname = cfg.host.replace("https://", "").replace("http://", "")
     with dbsql.connect(
-        server_hostname=cfg.host,
+        server_hostname=hostname,
         http_path=f"/sql/1.0/warehouses/{os.environ['SQL_WAREHOUSE_ID']}",
-        credentials_provider=lambda: cfg.authenticate,
+        access_token=token,
     ) as conn:
         with conn.cursor() as cursor:
             cursor.execute(sql)
             return cursor.fetchall_arrow().to_pandas()
+
+def query(sql: str) -> pd.DataFrame:
+    return _query(sql, _get_token())
 
 # ── Data ──────────────────────────────────────────────────────────────────────
 
