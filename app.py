@@ -11,7 +11,7 @@ st.caption("Powered by Databricks Lakehouse")
 
 st.divider()
 
-col1, col2, col3 = st.columns(3, gap="large")
+col1, col2, col3, col4 = st.columns(4, gap="large")
 
 with col1:
     st.page_link(
@@ -46,4 +46,16 @@ with col3:
     st.markdown(
         "Natural language chat over `ahtsa.awm` powered by Databricks Genie. "
         "Ask questions, get answers with live data tables and suggested follow-ups."
+    )
+
+with col4:
+    st.page_link(
+        "pages/4_Advisor_360.py",
+        label="**📋 Advisor 360**",
+        use_container_width=True,
+    )
+    st.markdown(
+        "Full Advisor 360 view ported from the Lakeview dashboard. "
+        "Period P&L, alpha vs benchmark, fee attribution, holdings breakdown, "
+        "and cumulative returns timeseries."
     )
