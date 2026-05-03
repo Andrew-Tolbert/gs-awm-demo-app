@@ -7,10 +7,11 @@ from databricks.sdk.core import Config
 assert os.getenv('DATABRICKS_WAREHOUSE_ID'), "DATABRICKS_WAREHOUSE_ID must be set in app.yaml."
 
 cfg = Config()
+hostname = cfg.host.removeprefix("https://").removeprefix("http://")
 
 def sql_query_with_user_token(query: str, user_token: str) -> pd.DataFrame:
     with sql.connect(
-        server_hostname=cfg.host,
+        server_hostname=hostname,
         http_path=f"/sql/1.0/warehouses/{os.getenv('DATABRICKS_WAREHOUSE_ID')}",
         access_token=user_token,
     ) as connection:
@@ -23,7 +24,7 @@ st.set_page_config(layout="wide")
 user_token = st.context.headers.get("X-Forwarded-Access-Token")
 
 with st.sidebar.expander("Debug", expanded=True):
-    st.write("host:", cfg.host)
+    st.write("host:", hostname)
     st.write("warehouse_id:", os.getenv('DATABRICKS_WAREHOUSE_ID'))
     st.write("token present:", bool(user_token))
 
