@@ -15,62 +15,51 @@ st.set_page_config(
 )
 
 cfg = Config()
+hostname = cfg.host.removeprefix("https://").removeprefix("http://")
 
-def query_as_user(sql: str, user_token: str) -> pd.DataFrame:
+def query(sql: str) -> pd.DataFrame:
     with dbsql.connect(
-        server_hostname=cfg.host,
-        http_path=f"/sql/1.0/warehouses/{cfg.warehouse_id}",
-        access_token=user_token,
-    ) as conn:
-        with conn.cursor() as cursor:
-            cursor.execute(sql)
-            return cursor.fetchall_arrow().to_pandas()
-
-def query_as_sp(sql: str) -> pd.DataFrame:
-    with dbsql.connect(
-        server_hostname=cfg.host,
-        http_path=f"/sql/1.0/warehouses/{cfg.warehouse_id}",
+        server_hostname=hostname,
+        http_path=f"/sql/1.0/warehouses/{os.getenv('DATABRICKS_WAREHOUSE_ID')}",
         credentials_provider=lambda: cfg.authenticate,
     ) as conn:
         with conn.cursor() as cursor:
             cursor.execute(sql)
             return cursor.fetchall_arrow().to_pandas()
 
-user_token = st.context.headers.get("X-Forwarded-Access-Token")
-
 @st.cache_data(ttl=300)
-def load_kpis(token):
-    return query_as_user("""
+def load_kpis():
+    return query("""
         SELECT
             (SELECT SUM(total_aum)     FROM ahtsa.awm.clients)   AS total_aum,
             (SELECT COUNT(*)           FROM ahtsa.awm.clients)   AS num_clients,
             (SELECT COUNT(*)           FROM ahtsa.awm.accounts)  AS num_accounts,
             (SELECT SUM(unrealized_gl) FROM ahtsa.awm.holdings)  AS total_gl,
             (SELECT SUM(market_value)  FROM ahtsa.awm.holdings)  AS total_mv
-    """, token)
+    """)
 
 @st.cache_data(ttl=300)
-def load_performance(token):
-    return query_as_user("""
+def load_performance():
+    return query("""
         SELECT symbol, date, adjClose
         FROM ahtsa.awm.bronze_historical_prices
         WHERE symbol IN ('SPY', 'AGG')
           AND date >= DATEADD(DAY, -90, CURRENT_DATE)
         ORDER BY date
-    """, token)
+    """)
 
 @st.cache_data(ttl=300)
-def load_allocation(token):
-    return query_as_user("""
+def load_allocation():
+    return query("""
         SELECT asset_class, SUM(market_value) AS market_value
         FROM ahtsa.awm.holdings
         GROUP BY asset_class
         ORDER BY market_value DESC
-    """, token)
+    """)
 
 @st.cache_data(ttl=300)
-def load_top_holdings(token):
-    return query_as_user("""
+def load_top_holdings():
+    return query("""
         SELECT
             ticker,
             company_name,
@@ -87,13 +76,13 @@ def load_top_holdings(token):
         GROUP BY ticker, company_name, sector
         ORDER BY SUM(market_value) DESC
         LIMIT 10
-    """, token)
+    """)
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
 
 with st.sidebar:
     st.header("Filters")
-    df_alloc_raw = load_allocation(user_token)
+    df_alloc_raw = load_allocation()
     asset_classes = df_alloc_raw["asset_class"].tolist()
     selected_classes = st.multiselect("Asset Class", asset_classes, default=asset_classes)
     lookback = st.slider("Performance Lookback (days)", 30, 90, 90)
@@ -105,7 +94,7 @@ st.caption("Powered by Databricks Lakehouse · Data from `ahtsa.awm`")
 
 # ── KPIs ──────────────────────────────────────────────────────────────────────
 
-kpis = load_kpis(user_token).iloc[0]
+kpis = load_kpis().iloc[0]
 total_aum = float(kpis["total_aum"])
 total_gl  = float(kpis["total_gl"])
 total_mv  = float(kpis["total_mv"])
@@ -121,7 +110,7 @@ st.divider()
 
 # ── Performance Chart ─────────────────────────────────────────────────────────
 
-df_perf = load_performance(user_token)
+df_perf = load_performance()
 df_perf["date"]     = pd.to_datetime(df_perf["date"])
 df_perf["adjClose"] = df_perf["adjClose"].astype(float)
 df_perf = df_perf[df_perf["date"] >= df_perf["date"].max() - pd.Timedelta(days=lookback)]
@@ -153,7 +142,7 @@ with col_left:
     st.plotly_chart(fig_pie, use_container_width=True)
 
 with col_right:
-    df_holdings = load_top_holdings(user_token)
+    df_holdings = load_top_holdings()
     for col in ("market_value_m", "unrealized_gl_m", "gl_pct", "weight_pct"):
         df_holdings[col] = pd.to_numeric(df_holdings[col], errors="coerce")
     st.subheader("Top Holdings")
