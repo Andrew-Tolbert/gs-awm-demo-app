@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 from lib.theme import setup, banner
 
 st.set_page_config(
@@ -8,9 +9,11 @@ st.set_page_config(
 )
 setup()
 
+# /embed/ prefix + ?o= org ID mirrors the working dashboard embed pattern.
 GENIE_URL = (
     "https://e2-demo-field-eng.cloud.databricks.com"
-    "/genie/rooms/01f147207fdd153cb94327ebddc171fe"
+    "/embed/genie/rooms/01f147207fdd153cb94327ebddc171fe"
+    "?o=1444828305810485"
 )
 
 banner("Ask Your Portfolio")
@@ -18,16 +21,4 @@ st.caption(
     "Native Databricks Genie Space — sign in with your Databricks credentials to interact."
 )
 
-# allow="clipboard-write" enables CSV export and conversation link copying per Databricks docs.
-st.markdown(
-    f"""
-    <iframe
-        src="{GENIE_URL}"
-        allow="clipboard-write"
-        width="100%"
-        height="880"
-        style="border:none; border-radius:8px; display:block;"
-    ></iframe>
-    """,
-    unsafe_allow_html=True,
-)
+components.iframe(GENIE_URL, height=880, scrolling=True)
