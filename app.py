@@ -13,7 +13,7 @@ st.caption("Powered by Databricks Lakehouse")
 
 st.divider()
 
-col1, col2, col3 = st.columns(3, gap="large")
+col1, col2, col3, col4 = st.columns(4, gap="large")
 
 with col1:
     st.page_link(
@@ -48,4 +48,15 @@ with col3:
         "Full Advisor 360 view ported from the Lakeview dashboard. "
         "Period P&L, alpha vs benchmark, fee attribution, holdings breakdown, "
         "and cumulative returns timeseries."
+    )
+
+with col4:
+    st.page_link(
+        "pages/5_Genie_Embed.py",
+        label="**🪄 Genie Space**",
+        use_container_width=True,
+    )
+    st.markdown(
+        "Native Databricks Genie Space embedded as an iframe. "
+        "Full Genie UI with conversation history, data export, and link sharing."
     )
