@@ -4,8 +4,10 @@ import plotly.express as px
 from datetime import datetime, timezone, timedelta
 from lib.db import run_query, BENCHMARKS
 from lib.queries import advisor_holdings_sql, advisor_timeseries_sql
+from lib import theme
 
 st.set_page_config(page_title="Advisor 360", page_icon="📋", layout="wide")
+theme.setup()
 
 
 # ── Cached data loaders ───────────────────────────────────────────────────────
@@ -113,15 +115,12 @@ def _color_signed(val) -> str:
     try:
         f = float(val)
         if f > 0:
-            return "color: #00a972"
+            return f"color: {theme.SUCCESS}"
         if f < 0:
-            return "color: #e53e3e"
+            return f"color: {theme.DANGER}"
     except (TypeError, ValueError):
         pass
     return ""
-
-
-CHART_MARGIN = dict(l=0, r=0, t=0, b=0)
 
 
 # ── Layout ────────────────────────────────────────────────────────────────────
@@ -130,7 +129,7 @@ CHART_MARGIN = dict(l=0, r=0, t=0, b=0)
 col_title, col_pnl, col_ret, col_fees_kpi = st.columns(4)
 
 with col_title:
-    st.markdown("### Advisor 360 Dashboard")
+    theme.banner("Advisor 360")
     st.caption(f"As of {as_of}")
 
 with col_pnl:
@@ -167,9 +166,11 @@ with col_bar:
         labels={"pct_return": "% Return", "asset_class": ""},
         text_auto=".1%",
     )
-    fig.update_layout(showlegend=False, coloraxis_showscale=False, margin=CHART_MARGIN)
     fig.update_xaxes(tickformat=".0%")
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(
+        theme.chart(fig, showlegend=False, coloraxis_showscale=False),
+        use_container_width=True,
+    )
 
 with col_ticker_bar:
     st.subheader("Return by Ticker")
@@ -185,16 +186,17 @@ with col_ticker_bar:
         labels={"pct_return": "% Return", "ticker": "", "asset_class": "Asset Class"},
     )
     fig.update_yaxes(tickformat=".1%")
-    fig.update_layout(margin=CHART_MARGIN)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(theme.chart(fig), use_container_width=True)
 
 with col_pie:
     st.subheader("AUM by Asset Class")
     df_pie = df.groupby("asset_class", as_index=False)["market_value"].sum()
     fig = px.pie(df_pie, values="market_value", names="asset_class", hole=0.35)
     fig.update_traces(textinfo="percent+label")
-    fig.update_layout(showlegend=False, margin=CHART_MARGIN)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(
+        theme.chart(fig, showlegend=False),
+        use_container_width=True,
+    )
 
 st.divider()
 
@@ -239,8 +241,8 @@ if not df_ts.empty:
         df_ts, x="date",
         y=["portfolio_return_before_fees", "benchmark_return"],
         color_discrete_map={
-            "portfolio_return_before_fees": "#1f77b4",
-            "benchmark_return": "#ff7f0e",
+            "portfolio_return_before_fees": theme.CHART_PORTFOLIO,
+            "benchmark_return":             theme.CHART_BENCHMARK,
         },
         labels={"value": "Cumulative Return", "date": "", "variable": ""},
     )
@@ -249,8 +251,10 @@ if not df_ts.empty:
         "benchmark_return": benchmark,
     }.get(t.name, t.name)))
     fig.update_yaxes(tickformat=".1%")
-    fig.update_layout(legend=dict(orientation="h", y=1.12), margin=CHART_MARGIN)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(
+        theme.chart(fig, legend=dict(orientation="h", y=1.12)),
+        use_container_width=True,
+    )
 
     st.divider()
 
@@ -293,10 +297,9 @@ if not df_ts.empty and "portfolio_alpha" in df_ts.columns:
     fig = px.area(
         df_ts, x="date", y="portfolio_alpha",
         labels={"portfolio_alpha": "", "date": ""},
-        color_discrete_sequence=["#2ecc71"],
+        color_discrete_sequence=[theme.CHART_ALPHA],
     )
     fig.update_yaxes(tickformat=".1%")
-    fig.update_layout(margin=CHART_MARGIN)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(theme.chart(fig), use_container_width=True)
 
 st.caption(f"Refreshed: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}")

@@ -1,12 +1,14 @@
 import streamlit as st
+from lib.theme import setup, banner
 
 st.set_page_config(
     page_title="GS AWM Demo",
     page_icon="🏦",
     layout="wide",
 )
+setup()
 
-st.title("GS Asset & Wealth Management")
+banner("GS Asset &amp; Wealth Management")
 st.caption("Powered by Databricks Lakehouse")
 
 st.divider()

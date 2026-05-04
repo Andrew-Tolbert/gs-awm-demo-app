@@ -1,13 +1,15 @@
 import streamlit as st
 import streamlit.components.v1 as components
+from lib.theme import setup, banner
 
 st.set_page_config(
     page_title="AI/BI Dashboard",
     page_icon="📈",
     layout="wide",
 )
+setup()
 
-st.title("AI/BI Dashboard")
+banner("AI/BI Dashboard")
 st.caption("Embedded Databricks AI/BI Lakeview Dashboard")
 
 DASHBOARD_URL = (

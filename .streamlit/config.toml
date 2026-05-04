@@ -1,0 +1,8 @@
+[theme]
+# GS AWM Design System — Streamlit base theme
+# Edit PRIMARY here and lib/theme.py will pick up the same token.
+primaryColor           = "#7297c5"   # Goldman Sachs blue
+backgroundColor        = "#f0f1f5"   # App canvas (cool lavender near-white)
+secondaryBackgroundColor = "#ffffff" # Sidebar, expanders, code blocks
+textColor              = "#1a1d2e"   # Primary body text
+font                   = "sans serif"

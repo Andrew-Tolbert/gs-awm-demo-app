@@ -5,8 +5,10 @@ import urllib.request
 import pandas as pd
 import streamlit as st
 from lib.db import workspace_client
+from lib.theme import setup
 
 st.set_page_config(page_title="Genie", page_icon="🧞", layout="wide")
+setup()
 
 SPACE_ID     = os.environ.get("AWM_GENIE_SPACE", "")
 _DONE_STATUS = {"COMPLETED", "QUERY_RESULT_IS_READY", "COMPLETED_WITH_QUERY_RESULT"}
