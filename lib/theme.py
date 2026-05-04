@@ -120,9 +120,9 @@ html, body, [data-testid="stAppViewContainer"] {{
 [data-testid="stHeader"]::after {{
     content: "{APP_NAME}";
     position: absolute;
-    left: 50%;
+    left: 3.75rem;
     top: 50%;
-    transform: translate(-50%, -50%);
+    transform: translateY(-50%);
     color: #fff;
     font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
     font-size: 1.15rem;
@@ -138,9 +138,9 @@ html, body, [data-testid="stAppViewContainer"] {{
     color: rgba(255,255,255,0.8) !important;
 }}
 
-/* ── Page padding — top is small since stMain already clears the header ─────── */
+/* ── Page padding — padding-top must clear the fixed ~60px header ────────── */
 .main .block-container {{
-    padding-top: 0.75rem !important;
+    padding-top: 4.5rem !important;
     padding-left: 1.5rem !important;
     padding-right: 1.5rem !important;
     padding-bottom: 1rem !important;
@@ -303,8 +303,9 @@ hr {{ border-top: 1px solid {BORDER_LIGHT} !important; }}
 
 _FULL_BLEED_CSS = """
 <style>
-/* Iframe embed pages — minimal side padding, zero bottom, keep top clearance */
+/* Iframe embed pages — minimal side/bottom padding, keep top header clearance */
 .main .block-container {
+    padding-top: 4.5rem !important;
     padding-left: 0.5rem !important;
     padding-right: 0.5rem !important;
     padding-bottom: 0 !important;
