@@ -125,7 +125,7 @@ html, body, [data-testid="stAppViewContainer"] {{
     transform: translate(-50%, -50%);
     color: #fff;
     font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
-    font-size: 0.88rem;
+    font-size: 1.15rem;
     font-weight: 700;
     letter-spacing: 0.01em;
     white-space: nowrap;
@@ -138,9 +138,9 @@ html, body, [data-testid="stAppViewContainer"] {{
     color: rgba(255,255,255,0.8) !important;
 }}
 
-/* ── Page padding — only override left/right/bottom; let Streamlit            */
-/* handle top clearance so the header never overlaps content.               ── */
+/* ── Page padding — top is small since stMain already clears the header ─────── */
 .main .block-container {{
+    padding-top: 0.75rem !important;
     padding-left: 1.5rem !important;
     padding-right: 1.5rem !important;
     padding-bottom: 1rem !important;
