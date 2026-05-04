@@ -5,9 +5,9 @@ import urllib.request
 import pandas as pd
 import streamlit as st
 from lib.db import workspace_client
-from lib.theme import setup
+from lib.theme import setup, banner
 
-st.set_page_config(page_title="Genie", page_icon="🧞", layout="wide")
+st.set_page_config(page_title="Ask Your Portfolio (Beta)", page_icon="🧞", layout="wide")
 setup()
 
 SPACE_ID     = os.environ.get("AWM_GENIE_SPACE", "")
@@ -141,7 +141,7 @@ st.session_state.setdefault("genie_messages", [])
 
 # ── Header ────────────────────────────────────────────────────────────────────
 
-st.title("Ask Your Portfolio")
+banner("Ask Your Portfolio", beta=True)
 st.caption("Powered by Databricks Genie · Natural language queries over `ahtsa.awm`")
 
 if not SPACE_ID:

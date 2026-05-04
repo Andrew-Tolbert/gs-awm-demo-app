@@ -4,14 +4,22 @@ GS AWM Design System
 Single source of truth for colors, typography, chart styling, and CSS.
 
 Usage in every page (after st.set_page_config):
-    from lib.theme import setup, chart
+    from lib.theme import setup, chart, banner
 
-    setup()                        # injects CSS + registers Plotly template
+    setup()                          # injects CSS
+    banner("Page Title")             # full-width branded header with date/time
+    banner("Page Title", beta=True)  # same but with a Beta badge
     fig = px.line(...)
-    st.plotly_chart(chart(fig))    # applies GS chart defaults
+    st.plotly_chart(chart(fig))      # applies GS chart defaults
 
-To update the brand color, change PRIMARY below; everything else follows.
+To update the brand color, change PRIMARY below — everything else follows.
+To rename the app, change APP_NAME below.
 """
+
+# ── App identity ──────────────────────────────────────────────────────────────
+
+APP_NAME = "Goldman Sachs AWM Pulse"
+
 
 # ── Color tokens ──────────────────────────────────────────────────────────────
 
@@ -54,11 +62,10 @@ CHART_ALPHA     = "#4caf8a"    # Cumulative alpha area
 
 
 # ── Plotly layout defaults ────────────────────────────────────────────────────
-# These are merged into every figure via chart(fig). Add or override keys here
-# to change how all charts look at once.
+# Merged into every figure via chart(fig). Change here to affect all charts.
 
 _PLOTLY_LAYOUT = dict(
-    paper_bgcolor="rgba(0,0,0,0)",   # transparent — inherits card/page bg
+    paper_bgcolor="rgba(0,0,0,0)",
     plot_bgcolor="rgba(0,0,0,0)",
     colorway=CHART_COLORS,
     margin=dict(l=0, r=0, t=4, b=0),
@@ -87,9 +94,8 @@ _PLOTLY_LAYOUT = dict(
 
 
 def chart(fig, **extra_layout):
-    """Apply GS AWM Plotly defaults to a figure.
+    """Apply GS AWM Plotly defaults to a figure. Returns fig for chaining.
 
-    Returns the figure so calls can be chained:
         st.plotly_chart(theme.chart(fig, showlegend=False))
     """
     fig.update_layout(**_PLOTLY_LAYOUT)
@@ -99,8 +105,6 @@ def chart(fig, **extra_layout):
 
 
 # ── CSS ───────────────────────────────────────────────────────────────────────
-# Targets Streamlit elements that config.toml cannot reach.
-# All color references use the tokens above so a single change propagates.
 
 _CSS = f"""
 <style>
@@ -109,6 +113,15 @@ _CSS = f"""
 
 html, body, [data-testid="stAppViewContainer"] {{
     font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif !important;
+}}
+
+/* ── Reduce default page padding ─────────────────────────────────────────── */
+.main .block-container {{
+    padding-top: 1rem !important;
+    padding-left: 1.5rem !important;
+    padding-right: 1.5rem !important;
+    padding-bottom: 1rem !important;
+    max-width: 100% !important;
 }}
 
 /* ── Top toolbar border ──────────────────────────────────────────────────── */
@@ -196,7 +209,6 @@ h3 {{
     font-size: 0.875rem;
     transition: background-color 0.15s ease, border-color 0.15s ease;
 }}
-/* Suggested-question chips (Genie page) */
 [data-testid="stHorizontalBlock"] .stButton > button {{
     background-color: {PRIMARY_LIGHT};
     color: {PRIMARY};
@@ -243,21 +255,76 @@ hr {{
     font-size: 0.78rem;
 }}
 
-/* ─────────────────────────────────────────────────────────────────────────── */
-/* Utility classes — use via st.markdown(..., unsafe_allow_html=True)          */
-/* ─────────────────────────────────────────────────────────────────────────── */
-
-/* Full-width GS blue banner */
+/* ── Banner component ────────────────────────────────────────────────────── */
 .gs-banner {{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     background: {PRIMARY};
     color: {SURFACE};
-    padding: 0.55rem 1.2rem;
+    padding: 0.6rem 1.4rem;
     border-radius: 8px;
-    font-size: 1rem;
-    font-weight: 600;
-    letter-spacing: 0.01em;
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.4rem;
+    line-height: 1;
 }}
+.gs-banner-left {{
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}}
+.gs-banner-appname {{
+    font-weight: 700;
+    font-size: 1rem;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+}}
+.gs-banner-divider {{
+    opacity: 0.4;
+    font-weight: 300;
+    font-size: 1.1rem;
+}}
+.gs-banner-pagetitle {{
+    font-weight: 400;
+    font-size: 1rem;
+    opacity: 0.9;
+}}
+.gs-banner-beta {{
+    background: rgba(255,255,255,0.18);
+    border: 1px solid rgba(255,255,255,0.45);
+    color: #fff;
+    font-size: 0.58rem;
+    font-weight: 700;
+    padding: 0.12rem 0.4rem;
+    border-radius: 3px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    vertical-align: middle;
+}}
+.gs-banner-right {{
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.8rem;
+    opacity: 0.8;
+    font-variant-numeric: tabular-nums;
+    font-weight: 400;
+    white-space: nowrap;
+}}
+.gs-banner-sep {{
+    opacity: 0.45;
+}}
+</style>
+"""
+
+_FULL_BLEED_CSS = """
+<style>
+.main .block-container {
+    padding-top: 0.5rem !important;
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+    padding-bottom: 0 !important;
+    max-width: 100% !important;
+}
 </style>
 """
 
@@ -265,15 +332,54 @@ hr {{
 # ── Public API ────────────────────────────────────────────────────────────────
 
 def setup() -> None:
-    """Apply the GS AWM theme to the current page.
-
-    Call once per page, immediately after st.set_page_config().
-    """
+    """Apply the GS AWM theme. Call once per page, after st.set_page_config()."""
     import streamlit as st
     st.markdown(_CSS, unsafe_allow_html=True)
 
 
-def banner(text: str) -> None:
-    """Render a full-width GS blue banner heading via st.markdown."""
+def full_bleed() -> None:
+    """Remove page padding — call on iframe embed pages after setup()."""
     import streamlit as st
-    st.markdown(f'<div class="gs-banner">{text}</div>', unsafe_allow_html=True)
+    st.markdown(_FULL_BLEED_CSS, unsafe_allow_html=True)
+
+
+def banner(page_title: str = "", beta: bool = False) -> None:
+    """Render the branded app banner with app name, page title, and live date/time.
+
+    Args:
+        page_title: Sub-page label shown after the app name. Omit on the home page.
+        beta:       Show a Beta badge next to the page title.
+    """
+    from datetime import datetime, timezone
+    import streamlit as st
+
+    now      = datetime.now(timezone.utc)
+    date_str = now.strftime("%d %b %Y")
+    time_str = now.strftime("%H:%M UTC")
+
+    page_section = ""
+    if page_title:
+        beta_badge = (
+            ' <span class="gs-banner-beta">Beta</span>' if beta else ""
+        )
+        page_section = (
+            f'<span class="gs-banner-divider">|</span>'
+            f'<span class="gs-banner-pagetitle">{page_title}{beta_badge}</span>'
+        )
+
+    st.markdown(
+        f"""
+        <div class="gs-banner">
+          <div class="gs-banner-left">
+            <span class="gs-banner-appname">{APP_NAME}</span>
+            {page_section}
+          </div>
+          <div class="gs-banner-right">
+            <span>{date_str}</span>
+            <span class="gs-banner-sep">·</span>
+            <span>{time_str}</span>
+          </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )

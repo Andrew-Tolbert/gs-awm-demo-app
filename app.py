@@ -2,61 +2,43 @@ import streamlit as st
 from lib.theme import setup, banner
 
 st.set_page_config(
-    page_title="GS AWM Demo",
+    page_title="Goldman Sachs AWM Pulse",
     page_icon="🏦",
     layout="wide",
 )
 setup()
 
-banner("GS Asset &amp; Wealth Management")
-st.caption("Powered by Databricks Lakehouse")
+banner()
 
+st.markdown("#### Powered by Databricks Lakehouse")
 st.divider()
 
-col1, col2, col3, col4 = st.columns(4, gap="large")
+col1, col2 = st.columns(2, gap="large")
 
 with col1:
+    st.markdown("### 🧞 Portfolio Insight")
     st.page_link(
-        "pages/2_AI_BI_Dashboard.py",
-        label="**📈 AI/BI Dashboard**",
+        "pages/1_Portfolio_Insight.py",
+        label="Open Portfolio Insight →",
         use_container_width=True,
     )
     st.markdown(
-        "Embedded Databricks AI/BI Lakeview dashboard. "
-        "Drag-and-drop analytics with natural language querying "
-        "and auto-generated insights."
+        "Natural language Q&A over your portfolio data powered by the native "
+        "Databricks Genie Space. Ask questions in plain English — Genie queries "
+        "live data, explains its reasoning, and surfaces follow-up suggestions. "
+        "Full conversation history with CSV export."
     )
 
 with col2:
+    st.markdown("### 📊 Portfolio Analytics")
     st.page_link(
-        "pages/3_Genie.py",
-        label="**🧞 Ask Your Portfolio**",
+        "pages/2_Portfolio_Analytics.py",
+        label="Open Portfolio Analytics →",
         use_container_width=True,
     )
     st.markdown(
-        "Natural language chat over `ahtsa.awm` powered by Databricks Genie. "
-        "Ask questions, get answers with live data tables and suggested follow-ups."
-    )
-
-with col3:
-    st.page_link(
-        "pages/4_Advisor_360.py",
-        label="**📋 Advisor 360**",
-        use_container_width=True,
-    )
-    st.markdown(
-        "Full Advisor 360 view ported from the Lakeview dashboard. "
-        "Period P&L, alpha vs benchmark, fee attribution, holdings breakdown, "
-        "and cumulative returns timeseries."
-    )
-
-with col4:
-    st.page_link(
-        "pages/5_Genie_Embed.py",
-        label="**🪄 Genie Space**",
-        use_container_width=True,
-    )
-    st.markdown(
-        "Native Databricks Genie Space embedded as an iframe. "
-        "Full Genie UI with conversation history, data export, and link sharing."
+        "Embedded Databricks AI/BI Lakeview dashboard with drag-and-drop "
+        "analytics, auto-generated insights, and natural language chart "
+        "creation. Real-time views across AUM, P&L, allocation, and "
+        "performance benchmarks — no code required."
     )

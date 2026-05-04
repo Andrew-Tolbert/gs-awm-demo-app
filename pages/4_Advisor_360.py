@@ -6,7 +6,7 @@ from lib.db import run_query, BENCHMARKS
 from lib.queries import advisor_holdings_sql, advisor_timeseries_sql
 from lib import theme
 
-st.set_page_config(page_title="Advisor 360", page_icon="📋", layout="wide")
+st.set_page_config(page_title="Advisor 360 (Beta)", page_icon="📋", layout="wide")
 theme.setup()
 
 
@@ -125,12 +125,11 @@ def _color_signed(val) -> str:
 
 # ── Layout ────────────────────────────────────────────────────────────────────
 
-# Row 1 — Title + KPIs
-col_title, col_pnl, col_ret, col_fees_kpi = st.columns(4)
+theme.banner("Advisor 360", beta=True)
+st.caption(f"As of {as_of}")
 
-with col_title:
-    theme.banner("Advisor 360")
-    st.caption(f"As of {as_of}")
+# Row 1 — KPIs
+col_pnl, col_ret, col_fees_kpi = st.columns(3)
 
 with col_pnl:
     st.metric("Period P&L", f"${total_pnl:,.0f}")
