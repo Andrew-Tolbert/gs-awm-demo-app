@@ -1,100 +1,54 @@
-import os
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-from databricks import sql as dbsql
-from databricks.sdk.core import Config
 from datetime import datetime, timezone
+from lib.db import run_query
+from lib.queries import kpis_sql, performance_sql, allocation_sql, top_holdings_sql
 
-assert os.getenv('DATABRICKS_WAREHOUSE_ID'), "DATABRICKS_WAREHOUSE_ID must be set in app.yaml."
+st.set_page_config(page_title="Streamlit Dashboard", page_icon="📊", layout="wide")
 
-st.set_page_config(
-    page_title="Streamlit Dashboard",
-    page_icon="📊",
-    layout="wide",
-)
 
-cfg = Config()
-hostname = cfg.host.removeprefix("https://").removeprefix("http://")
-
-def query(sql: str) -> pd.DataFrame:
-    with dbsql.connect(
-        server_hostname=hostname,
-        http_path=f"/sql/1.0/warehouses/{os.getenv('DATABRICKS_WAREHOUSE_ID')}",
-        credentials_provider=lambda: cfg.authenticate,
-    ) as conn:
-        with conn.cursor() as cursor:
-            cursor.execute(sql)
-            return cursor.fetchall_arrow().to_pandas()
+# ── Cached data loaders ───────────────────────────────────────────────────────
 
 @st.cache_data(ttl=300)
-def load_kpis():
-    return query("""
-        SELECT
-            (SELECT SUM(total_aum)     FROM ahtsa.awm.clients)   AS total_aum,
-            (SELECT COUNT(*)           FROM ahtsa.awm.clients)   AS num_clients,
-            (SELECT COUNT(*)           FROM ahtsa.awm.accounts)  AS num_accounts,
-            (SELECT SUM(unrealized_gl) FROM ahtsa.awm.holdings)  AS total_gl,
-            (SELECT SUM(market_value)  FROM ahtsa.awm.holdings)  AS total_mv
-    """)
+def load_kpis() -> pd.DataFrame:
+    return run_query(kpis_sql())
+
 
 @st.cache_data(ttl=300)
-def load_performance():
-    return query("""
-        SELECT symbol, date, adjClose
-        FROM ahtsa.awm.bronze_historical_prices
-        WHERE symbol IN ('SPY', 'AGG')
-          AND date >= DATEADD(DAY, -90, CURRENT_DATE)
-        ORDER BY date
-    """)
+def load_performance() -> pd.DataFrame:
+    return run_query(performance_sql())
+
 
 @st.cache_data(ttl=300)
-def load_allocation():
-    return query("""
-        SELECT asset_class, SUM(market_value) AS market_value
-        FROM ahtsa.awm.holdings
-        GROUP BY asset_class
-        ORDER BY market_value DESC
-    """)
+def load_allocation() -> pd.DataFrame:
+    return run_query(allocation_sql())
+
 
 @st.cache_data(ttl=300)
-def load_top_holdings():
-    return query("""
-        SELECT
-            ticker,
-            company_name,
-            sector,
-            ROUND(SUM(market_value) / 1e6, 1)      AS market_value_m,
-            ROUND(SUM(unrealized_gl) / 1e6, 1)     AS unrealized_gl_m,
-            ROUND(AVG(unrealized_gl_pct), 1)        AS gl_pct,
-            ROUND(AVG(pct_of_total_aum) * 100, 2)  AS weight_pct,
-            MAX(analyst_consensus)                  AS analyst_view
-        FROM ahtsa.awm.gold_portfolio_fundamentals
-        WHERE holdings_date = (SELECT MAX(holdings_date) FROM ahtsa.awm.gold_portfolio_fundamentals)
-          AND is_etf = false
-          AND sector IS NOT NULL
-        GROUP BY ticker, company_name, sector
-        ORDER BY SUM(market_value) DESC
-        LIMIT 10
-    """)
+def load_top_holdings() -> pd.DataFrame:
+    return run_query(top_holdings_sql())
+
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
 
 with st.sidebar:
     st.header("Filters")
-    df_alloc_raw = load_allocation()
+    df_alloc_raw  = load_allocation()
     asset_classes = df_alloc_raw["asset_class"].tolist()
     selected_classes = st.multiselect("Asset Class", asset_classes, default=asset_classes)
     lookback = st.slider("Performance Lookback (days)", 30, 90, 90)
+
 
 # ── Header ────────────────────────────────────────────────────────────────────
 
 st.title("GS Asset & Wealth Management")
 st.caption("Powered by Databricks Lakehouse · Data from `ahtsa.awm`")
 
+
 # ── KPIs ──────────────────────────────────────────────────────────────────────
 
-kpis = load_kpis().iloc[0]
+kpis      = load_kpis().iloc[0]
 total_aum = float(kpis["total_aum"])
 total_gl  = float(kpis["total_gl"])
 total_mv  = float(kpis["total_mv"])
@@ -108,7 +62,8 @@ col4.metric("Unrealized G/L", f"${total_gl / 1e9:.1f}B", f"{gl_pct:+.1f}%")
 
 st.divider()
 
-# ── Performance Chart ─────────────────────────────────────────────────────────
+
+# ── Market Performance Chart ──────────────────────────────────────────────────
 
 df_perf = load_performance()
 df_perf["date"]     = pd.to_datetime(df_perf["date"])
@@ -126,7 +81,8 @@ fig_perf = px.line(
 fig_perf.update_layout(hovermode="x unified", legend=dict(orientation="h", y=1.12))
 st.plotly_chart(fig_perf, use_container_width=True)
 
-# ── Allocation + Top Holdings ─────────────────────────────────────────────────
+
+# ── Asset Allocation + Top Holdings ──────────────────────────────────────────
 
 col_left, col_right = st.columns(2)
 
