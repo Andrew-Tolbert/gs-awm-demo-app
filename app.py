@@ -11,21 +11,9 @@ st.caption("Powered by Databricks Lakehouse")
 
 st.divider()
 
-col1, col2, col3, col4 = st.columns(4, gap="large")
+col1, col2, col3 = st.columns(3, gap="large")
 
 with col1:
-    st.page_link(
-        "pages/1_Streamlit_Dashboard.py",
-        label="**📊 Streamlit Dashboard**",
-        use_container_width=True,
-    )
-    st.markdown(
-        "Live portfolio analytics built with Streamlit. "
-        "Includes AUM KPIs, market performance charts, asset allocation, "
-        "and top holdings with fundamentals — all powered by `ahtsa.awm`."
-    )
-
-with col2:
     st.page_link(
         "pages/2_AI_BI_Dashboard.py",
         label="**📈 AI/BI Dashboard**",
@@ -37,7 +25,7 @@ with col2:
         "and auto-generated insights."
     )
 
-with col3:
+with col2:
     st.page_link(
         "pages/3_Genie.py",
         label="**🧞 Ask Your Portfolio**",
@@ -48,7 +36,7 @@ with col3:
         "Ask questions, get answers with live data tables and suggested follow-ups."
     )
 
-with col4:
+with col3:
     st.page_link(
         "pages/4_Advisor_360.py",
         label="**📋 Advisor 360**",

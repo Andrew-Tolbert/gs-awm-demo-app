@@ -16,24 +16,6 @@ def _load(filename: str) -> str:
     return (_SQL_DIR / filename).read_text()
 
 
-# ── Static queries (schema injection only) ────────────────────────────────────
-
-def kpis_sql() -> str:
-    return _load("kpis.sql").format(schema=SCHEMA)
-
-
-def performance_sql() -> str:
-    return _load("performance.sql").format(schema=SCHEMA)
-
-
-def allocation_sql() -> str:
-    return _load("allocation.sql").format(schema=SCHEMA)
-
-
-def top_holdings_sql() -> str:
-    return _load("top_holdings.sql").format(schema=SCHEMA)
-
-
 # ── Parameterised queries ─────────────────────────────────────────────────────
 
 def advisor_holdings_sql(start_dt: str, end_dt: str, benchmark: str) -> str:

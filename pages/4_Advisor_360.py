@@ -104,7 +104,8 @@ def _add_return_measures(grp: pd.DataFrame) -> pd.DataFrame:
     grp["pct_return"]   = grp["period_pl"] / grp["period_total_cost_basis"].replace(0, float("nan"))
     grp["pct_alpha"]    = grp["pct_return"] - bm_return
     grp["dollar_alpha"] = grp["pct_alpha"] * grp["period_total_cost_basis"]
-    grp["fee_ratio"]    = grp["fees_attributed"] / grp["market_value"].replace(0, float("nan"))
+    if "fees_attributed" in grp.columns and "market_value" in grp.columns:
+        grp["fee_ratio"] = grp["fees_attributed"] / grp["market_value"].replace(0, float("nan"))
     return grp
 
 
