@@ -3,52 +3,53 @@ GS AWM Design System
 ====================
 Single source of truth for colors, typography, chart styling, and CSS.
 
-Usage in every page (after st.set_page_config):
-    from lib.theme import setup, chart, banner
+Usage in every page:
+    from lib.theme import banner, full_bleed, chart
+    # setup() is called once in app.py — pages call banner() directly
 
-    setup()                          # injects CSS
-    banner("Page Title")             # full-width branded header with date/time
-    banner("Page Title", beta=True)  # same but with a Beta badge
-    fig = px.line(...)
-    st.plotly_chart(chart(fig))      # applies GS chart defaults
+    banner("Portfolio Insight")          # GS blue sub-banner with page title + time
+    banner("Advisor 360", beta=True)     # same, with a Beta badge
+    st.plotly_chart(chart(fig))          # apply GS chart defaults
 
-To update the brand color, change PRIMARY below — everything else follows.
-To rename the app, change APP_NAME below.
+To update:
+    Brand color  → change PRIMARY
+    Header color → change HEADER_COLOR
+    App name     → change APP_NAME
 """
 
 # ── App identity ──────────────────────────────────────────────────────────────
 
-APP_NAME = "Goldman Sachs AWM Pulse"
+APP_NAME     = "Goldman Sachs AWM Pulse"
+HEADER_COLOR = "#475b72"   # Dark navy — top Streamlit header bar
 
 
 # ── Color tokens ──────────────────────────────────────────────────────────────
 
-PRIMARY       = "#7297c5"   # Goldman Sachs blue — banners, buttons, accents
-PRIMARY_DARK  = "#5a7aad"   # Hover / pressed state
-PRIMARY_LIGHT = "#e8eef6"   # Tinted surface, selected rows, chip backgrounds
+PRIMARY       = "#7297c5"   # Goldman Sachs blue — sub-banners, buttons, accents
+PRIMARY_DARK  = "#5a7aad"   # Hover / pressed
+PRIMARY_LIGHT = "#e8eef6"   # Tinted surface, chip backgrounds
 
 BACKGROUND    = "#f0f1f5"   # App canvas (cool lavender near-white)
 SURFACE       = "#ffffff"   # Cards and panels
-SURFACE_ALT   = "#f7f8fb"   # Metric cards, alternate rows, subtle insets
+SURFACE_ALT   = "#f7f8fb"   # Metric cards, alternate rows
 
 BORDER        = "#dde2ec"   # Dividers and input outlines
-BORDER_LIGHT  = "#eef0f5"   # Hairline separators, hover outlines
+BORDER_LIGHT  = "#eef0f5"   # Hairline separators
 
 TEXT_PRIMARY   = "#1a1d2e"  # Headings and body copy
 TEXT_SECONDARY = "#6673a0"  # Captions, axis labels, subtitles
 TEXT_MUTED     = "#9aa5be"  # Placeholders, disabled states
 
-SUCCESS = "#00a972"   # Positive P&L / return (green)
-DANGER  = "#e53e3e"   # Negative P&L / return (red)
+SUCCESS = "#00a972"   # Positive P&L / return
+DANGER  = "#e53e3e"   # Negative P&L / return
 
 
 # ── Chart palette ─────────────────────────────────────────────────────────────
-# Ordered so the first color is always GS blue (portfolio), second is benchmark.
 
 CHART_COLORS = [
     PRIMARY,     # GS Blue   — portfolio / primary series
-    "#f5a623",   # Amber     — benchmark / secondary series
-    "#4caf8a",   # Teal      — alpha / tertiary
+    "#f5a623",   # Amber     — benchmark
+    "#4caf8a",   # Teal      — alpha
     "#e57373",   # Rose
     "#9575cd",   # Lavender
     "#4db6ac",   # Teal-cyan
@@ -56,13 +57,12 @@ CHART_COLORS = [
     "#81c784",   # Sage green
 ]
 
-CHART_PORTFOLIO = PRIMARY       # Portfolio return line
-CHART_BENCHMARK = "#f5a623"    # Benchmark line
-CHART_ALPHA     = "#4caf8a"    # Cumulative alpha area
+CHART_PORTFOLIO = PRIMARY
+CHART_BENCHMARK = "#f5a623"
+CHART_ALPHA     = "#4caf8a"
 
 
 # ── Plotly layout defaults ────────────────────────────────────────────────────
-# Merged into every figure via chart(fig). Change here to affect all charts.
 
 _PLOTLY_LAYOUT = dict(
     paper_bgcolor="rgba(0,0,0,0)",
@@ -94,10 +94,7 @@ _PLOTLY_LAYOUT = dict(
 
 
 def chart(fig, **extra_layout):
-    """Apply GS AWM Plotly defaults to a figure. Returns fig for chaining.
-
-        st.plotly_chart(theme.chart(fig, showlegend=False))
-    """
+    """Apply GS AWM Plotly defaults. Returns fig for chaining."""
     fig.update_layout(**_PLOTLY_LAYOUT)
     if extra_layout:
         fig.update_layout(**extra_layout)
@@ -115,19 +112,39 @@ html, body, [data-testid="stAppViewContainer"] {{
     font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif !important;
 }}
 
-/* ── Reduce default page padding ─────────────────────────────────────────── */
+/* ── Header bar — app name centered via ::after, no JS required ──────────── */
+[data-testid="stHeader"] {{
+    background-color: {HEADER_COLOR};
+    position: relative;
+}}
+[data-testid="stHeader"]::after {{
+    content: "{APP_NAME}";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    color: #fff;
+    font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.88rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    pointer-events: none;
+}}
+/* Tint the hamburger + deploy icons to match the header */
+[data-testid="stHeader"] button svg,
+[data-testid="stHeader"] [data-testid="stToolbar"] svg {{
+    fill: rgba(255,255,255,0.8) !important;
+    color: rgba(255,255,255,0.8) !important;
+}}
+
+/* ── Page padding — only override left/right/bottom; let Streamlit            */
+/* handle top clearance so the header never overlaps content.               ── */
 .main .block-container {{
-    padding-top: 1rem !important;
     padding-left: 1.5rem !important;
     padding-right: 1.5rem !important;
     padding-bottom: 1rem !important;
     max-width: 100% !important;
-}}
-
-/* ── Top toolbar border ──────────────────────────────────────────────────── */
-[data-testid="stHeader"] {{
-    background-color: {SURFACE};
-    border-bottom: 2px solid {PRIMARY};
 }}
 
 /* ── Sidebar ─────────────────────────────────────────────────────────────── */
@@ -153,10 +170,7 @@ h1 {{
     letter-spacing: -0.02em;
     color: {TEXT_PRIMARY};
 }}
-h2 {{
-    font-weight: 600;
-    color: {TEXT_PRIMARY};
-}}
+h2 {{ font-weight: 600; color: {TEXT_PRIMARY}; }}
 h3 {{
     font-weight: 600;
     color: {TEXT_PRIMARY};
@@ -232,9 +246,7 @@ h3 {{
 }}
 
 /* ── Divider ─────────────────────────────────────────────────────────────── */
-hr {{
-    border-top: 1px solid {BORDER_LIGHT} !important;
-}}
+hr {{ border-top: 1px solid {BORDER_LIGHT} !important; }}
 
 /* ── Chat messages ───────────────────────────────────────────────────────── */
 [data-testid="stChatMessage"] {{
@@ -242,84 +254,57 @@ hr {{
     border: 1px solid {BORDER_LIGHT};
 }}
 
-/* ── Expander label ──────────────────────────────────────────────────────── */
+/* ── Expander ────────────────────────────────────────────────────────────── */
 [data-testid="stExpander"] summary {{
     font-size: 0.85rem;
     color: {TEXT_SECONDARY};
     font-weight: 500;
 }}
 
-/* ── Caption text ────────────────────────────────────────────────────────── */
+/* ── Caption ─────────────────────────────────────────────────────────────── */
 [data-testid="stCaptionContainer"] p {{
     color: {TEXT_MUTED};
     font-size: 0.78rem;
 }}
 
-/* ── Banner component ────────────────────────────────────────────────────── */
+/* ── Sub-banner (gs-banner) ──────────────────────────────────────────────── */
 .gs-banner {{
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
     background: {PRIMARY};
-    color: {SURFACE};
-    padding: 0.6rem 1.4rem;
+    color: #fff;
+    padding: 0.5rem 1.2rem;
     border-radius: 8px;
-    margin-bottom: 0.4rem;
-    line-height: 1;
-}}
-.gs-banner-left {{
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    margin-bottom: 0.5rem;
     display: flex;
-    align-items: center;
+    align-items: baseline;
     gap: 0.6rem;
 }}
-.gs-banner-appname {{
-    font-weight: 700;
-    font-size: 1rem;
-    letter-spacing: 0.01em;
-    white-space: nowrap;
-}}
-.gs-banner-divider {{
-    opacity: 0.4;
-    font-weight: 300;
-    font-size: 1.1rem;
-}}
-.gs-banner-pagetitle {{
+.gs-banner-time {{
+    font-size: 0.75rem;
     font-weight: 400;
-    font-size: 1rem;
-    opacity: 0.9;
+    opacity: 0.75;
+    font-variant-numeric: tabular-nums;
 }}
 .gs-banner-beta {{
-    background: rgba(255,255,255,0.18);
-    border: 1px solid rgba(255,255,255,0.45);
-    color: #fff;
-    font-size: 0.58rem;
+    font-size: 0.6rem;
     font-weight: 700;
-    padding: 0.12rem 0.4rem;
-    border-radius: 3px;
-    letter-spacing: 0.1em;
     text-transform: uppercase;
+    letter-spacing: 0.1em;
+    background: rgba(255,255,255,0.2);
+    border: 1px solid rgba(255,255,255,0.4);
+    padding: 0.1rem 0.4rem;
+    border-radius: 3px;
     vertical-align: middle;
-}}
-.gs-banner-right {{
-    display: flex;
-    align-items: center;
-    gap: 0.35rem;
-    font-size: 0.8rem;
-    opacity: 0.8;
-    font-variant-numeric: tabular-nums;
-    font-weight: 400;
-    white-space: nowrap;
-}}
-.gs-banner-sep {{
-    opacity: 0.45;
 }}
 </style>
 """
 
 _FULL_BLEED_CSS = """
 <style>
+/* Iframe embed pages — minimal side padding, zero bottom, keep top clearance */
 .main .block-container {
-    padding-top: 0.5rem !important;
     padding-left: 0.5rem !important;
     padding-right: 0.5rem !important;
     padding-bottom: 0 !important;
@@ -332,54 +317,35 @@ _FULL_BLEED_CSS = """
 # ── Public API ────────────────────────────────────────────────────────────────
 
 def setup() -> None:
-    """Apply the GS AWM theme. Call once per page, after st.set_page_config()."""
+    """Inject global CSS. Called once in app.py before st.navigation()."""
     import streamlit as st
     st.markdown(_CSS, unsafe_allow_html=True)
 
 
 def full_bleed() -> None:
-    """Remove page padding — call on iframe embed pages after setup()."""
+    """Minimize page padding for iframe embed pages. Call after setup()."""
     import streamlit as st
     st.markdown(_FULL_BLEED_CSS, unsafe_allow_html=True)
 
 
-def banner(page_title: str = "", beta: bool = False) -> None:
-    """Render the branded app banner with app name, page title, and live date/time.
+def banner(page_title: str, beta: bool = False) -> None:
+    """Render the GS blue page sub-banner with title and current UTC time.
 
     Args:
-        page_title: Sub-page label shown after the app name. Omit on the home page.
-        beta:       Show a Beta badge next to the page title.
+        page_title: Page label shown in the banner.
+        beta:       Append a Beta badge.
     """
     from datetime import datetime, timezone
     import streamlit as st
 
-    now      = datetime.now(timezone.utc)
-    date_str = now.strftime("%d %b %Y")
-    time_str = now.strftime("%H:%M UTC")
-
-    page_section = ""
-    if page_title:
-        beta_badge = (
-            ' <span class="gs-banner-beta">Beta</span>' if beta else ""
-        )
-        page_section = (
-            f'<span class="gs-banner-divider">|</span>'
-            f'<span class="gs-banner-pagetitle">{page_title}{beta_badge}</span>'
-        )
+    now          = datetime.now(timezone.utc)
+    datetime_str = now.strftime("%d %b %Y  %H:%M UTC")
+    beta_html    = '<span class="gs-banner-beta">Beta</span>' if beta else ""
 
     st.markdown(
-        f"""
-        <div class="gs-banner">
-          <div class="gs-banner-left">
-            <span class="gs-banner-appname">{APP_NAME}</span>
-            {page_section}
-          </div>
-          <div class="gs-banner-right">
-            <span>{date_str}</span>
-            <span class="gs-banner-sep">·</span>
-            <span>{time_str}</span>
-          </div>
-        </div>
-        """,
+        f'<div class="gs-banner">'
+        f'{page_title} {beta_html}'
+        f'<span class="gs-banner-time">{datetime_str}</span>'
+        f'</div>',
         unsafe_allow_html=True,
     )

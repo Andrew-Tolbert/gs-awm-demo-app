@@ -6,9 +6,6 @@ from lib.db import run_query, BENCHMARKS
 from lib.queries import advisor_holdings_sql, advisor_timeseries_sql
 from lib import theme
 
-st.set_page_config(page_title="Advisor 360 (Beta)", page_icon="📋", layout="wide")
-theme.setup()
-
 
 # ── Cached data loaders ───────────────────────────────────────────────────────
 

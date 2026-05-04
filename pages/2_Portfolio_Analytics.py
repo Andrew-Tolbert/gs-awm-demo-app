@@ -1,13 +1,7 @@
 import streamlit as st
 import streamlit.components.v1 as components
-from lib.theme import setup, full_bleed, banner
+from lib.theme import full_bleed, banner
 
-st.set_page_config(
-    page_title="Portfolio Analytics",
-    page_icon="📈",
-    layout="wide",
-)
-setup()
 full_bleed()
 
 DASHBOARD_URL = (
